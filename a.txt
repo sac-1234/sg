@@ -1,0 +1,71 @@
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+
+public class BatchInsertImages {
+    private static final String DB_URL = "jdbc:mysql://localhost:3306/your_database";
+    private static final String DB_USER = "your_username";
+    private static final String DB_PASSWORD = "your_password";
+
+    public static void main(String[] args) {
+        Connection connection = null;
+        PreparedStatement preparedStatement = null;
+
+        try {
+            // Establish connection to the database
+            connection = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+
+            // Disable auto-commit for batch processing
+            connection.setAutoCommit(false);
+
+            // SQL query to insert product images
+            String insertQuery = "INSERT INTO product_images (product_id, image_url) VALUES (?, ?)";
+            preparedStatement = connection.prepareStatement(insertQuery);
+
+            // Example product ID and image URLs
+            int productId = 101; // Example product ID
+            String[] imageUrls = {
+                "https://example.com/images/product1.jpg",
+                "https://example.com/images/product2.jpg",
+                "https://example.com/images/product3.jpg",
+                "https://example.com/images/product4.jpg",
+                "https://example.com/images/product5.jpg"
+            };
+
+            // Add image details to the batch
+            for (String imageUrl : imageUrls) {
+                preparedStatement.setInt(1, productId);
+                preparedStatement.setString(2, imageUrl);
+                preparedStatement.addBatch();
+            }
+
+            // Execute the batch
+            int[] result = preparedStatement.executeBatch();
+
+            // Commit the transaction
+            connection.commit();
+
+            // Output the result
+            System.out.println("Batch insert completed. Rows affected: " + result.length);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            if (connection != null) {
+                try {
+                    // Rollback in case of an error
+                    connection.rollback();
+                } catch (SQLException rollbackException) {
+                    rollbackException.printStackTrace();
+                }
+            }
+        } finally {
+            // Close resources
+            try {
+                if (preparedStatement != null) preparedStatement.close();
+                if (connection != null) connection.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+}
